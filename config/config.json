@@ -1,0 +1,22 @@
+{
+    "port": 3000,
+    "mongoose": {
+        "uri": "mongodb://localhost/task-tracker",
+        "options": {
+            "server": {
+                "socketOptions": {
+                    "keepAlive": 1
+                }
+            }
+        }
+    },
+    "session": {
+        "secret": "killerIsJim",
+        "key": "sid",
+        "cookie": {
+            "path": "/",
+            "httpOnly": true,
+            "maxAge": null
+        }
+    }
+}
