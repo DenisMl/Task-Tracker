@@ -70,9 +70,33 @@ let App = React.createClass({
         this.getProjectsInfo();
     },
 
+    showTasks: function(event) {
+        // if (this.props.project.tasks.length) {//TODO: event props and state is needed
+        //OR: handle this method in Project but close all in App using method of Project
+        // OR: FUCKING RERENDER ALL PROJECTS!!!
+        //     if (this.state.tasksShown) {
+        //         this.refs.tasksBox.style.display = "none";
+        //         this.state.tasksShown = false;
+        //     } else {
+        //         this.refs.tasksBox.style.display = "flex";
+        //         this.state.tasksShown = true;
+        //         // this.refs.project.scrollIntoView();
+        //     }
+        // }
+    },
+
+    closeAllTasks: function() {
+        // console.log(this.refs.project0);
+        for (let i = 0; i < this.state.projects.length; i++) {
+            let projectRef = 'project' + i;
+            this.refs[projectRef].hideTasks();
+        }
+    },
+
     renderProject: function(project, i) {
+        let ref = 'project' + i;
         return (
-            <Project key={i} project={project} getProjectsInfo={this.getProjectsInfo}></Project>
+            <Project ref={ref} key={i} index={i} project={project} getProjectsInfo={this.getProjectsInfo} showTasks={this.showTasks} closeAllTasks={this.closeAllTasks}/>
         );
     },
 

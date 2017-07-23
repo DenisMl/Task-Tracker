@@ -1,5 +1,4 @@
 import React from 'react';
-// import Modal from '../js/modal';
 
 let Header = React.createClass({
 
@@ -49,7 +48,7 @@ let Header = React.createClass({
         if (this.props.user.isManager) {
             return (
                 <div className="header">
-                    <div className="wrapper">
+                    {/* <div className="wrapper"> */}
 
                         <span>{this.props.user.firstName}&ensp;{this.props.user.lastName}</span>
 
@@ -72,7 +71,7 @@ let Header = React.createClass({
                                         <button className="button modal-button" onClick={this.createAndClose}>Add</button>
                                     </div>
                                     {/* <div className="modal-footer">
-                            </div> */}
+                                    </div> */}
                                 </div>
 
                             </div>
@@ -81,7 +80,7 @@ let Header = React.createClass({
                                 <button type="submit" className="short-btn button">Logout</button>
                             </form>
                         </div>
-                    </div>
+                        {/* </div> */}
                 </div>
             );
         } else {

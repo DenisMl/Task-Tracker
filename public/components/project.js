@@ -3,7 +3,8 @@ import Task from '../components/task';
 
 let Project = React.createClass({
 
-    modalOpen: function() {
+    modalOpen: function(event) {
+        event.stopPropagation();
         this.refs.modal.style.display = "block";
         this.refs.taskName.value = '';
         this.refs.taskName.focus();
@@ -14,6 +15,7 @@ let Project = React.createClass({
     },
 
     modalCloseOutside: function(event) {
+        event.stopPropagation();
         if (event.target == this.refs.modal) {
             this.refs.modal.style.display = "none";
         }
@@ -63,37 +65,42 @@ let Project = React.createClass({
 
     hideTasks: function() {
         this.refs.tasksBox.style.display = "none";
+        this.setState({tasksShown: false});
+
     },
 
     showTasks: function() {
         if (this.props.project.tasks.length) {
             if (this.state.tasksShown) {
                 this.refs.tasksBox.style.display = "none";
-                this.state.tasksShown = false;
+                this.setState({tasksShown: false});
+
             } else {
+                this.props.closeAllTasks();
                 this.refs.tasksBox.style.display = "flex";
-                this.state.tasksShown = true;
-                // this.refs.project.scrollIntoView();
+                this.setState({tasksShown: true});
             }
         }
     },
 
-    renderTask: function(task, i) {
-        return (
-            <Task key={i} task={task}></Task>
-        );
-    },
 
     getInitialState: function() {
         return {
-            tasksShown: false
+            tasksShown: false,
+            // pojectChosen: false
         };
+    },
+
+    renderTask: function(task, i) {
+        return (
+            <Task key={i} task={task} parentProject={this.props.project} getProjectsInfo={this.props.getProjectsInfo} />
+        );
     },
 
     render: function() {
         return (
             <div>
-                <div ref="project" className="project" onClick={this.showTasks}>
+                <div ref="project" className={"project " + (this.state.tasksShown ? 'project-chosen' : 'project-unchosen')} onClick={this.showTasks}>
                     <span>{this.props.project.projectName}:&ensp;
                         <span>{this.props.project.tasks.length}&ensp;tasks</span>
                     </span>
@@ -120,7 +127,6 @@ let Project = React.createClass({
 
                 </div>
                 <div ref="tasksBox" className="tasks-box">
-                    <div className="collapse-bar" onClick={this.hideTasks}><span>^</span></div>
                     <div className="tasks-wrapper">
                         {this.props.project.tasks.map(this.renderTask)}
 

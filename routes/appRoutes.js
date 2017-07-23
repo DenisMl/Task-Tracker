@@ -7,6 +7,7 @@ router.get('/getProjectsInfo', appController.getProjectsInfo);
 router.post('/createProject', appController.createProject);
 router.post('/deleteProject', appController.deleteProject);
 router.post('/createTask', appController.createTask);
+router.post('/deleteTask', appController.deleteTask);
 
 
 module.exports = router;

@@ -108,6 +108,21 @@ appController.deleteProject = function(req, res) {
     });
 };
 
+appController.deleteTask = function(req, res) {
+    Project.findByIdAndUpdate(req.body.projectId, { //id of project
+        $pull: {
+            'tasks': {_id: req.body.taskId}
+        }
+    }, function(err, task) {
+        if (err) {
+            console.log('>> ' + err);
+            res.end();
+        } else {
+            res.send(task);
+        }
+    });
+};
+
 appController.createTask = function(req, res) {
     Project.findByIdAndUpdate(req.body.projectId, { //id of project
         $push: {
