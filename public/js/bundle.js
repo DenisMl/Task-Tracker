@@ -9777,33 +9777,9 @@ var _header2 = _interopRequireDefault(_header);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-// import UserList from '../containers/user-list';
-
-// import { Router, Route, hashHistory, RouteHandler } from 'react-router';
-
 var App = _react2.default.createClass({
     displayName: 'App',
 
-    // self: this,
-
-    getInitialState: function getInitialState() {
-        return {
-            user: {
-                email: '',
-                firstName: '',
-                lastName: '',
-                isManager: ''
-            },
-            projects: []
-            // project: {
-            //     projectName: '',
-            //     author: '',
-            //     developers: '',
-            //     tasks: {},
-            //     created: ''
-            // }
-        };
-    },
 
     getUserInfo: function getUserInfo() {
         var self = this;
@@ -9815,6 +9791,8 @@ var App = _react2.default.createClass({
             return res.json();
         }).then(function (res) {
             self.setState({ user: res });
+        }).then(function (res) {
+            self.getProjectsInfo();
         }).catch(function (err) {
             console.log('>>err: ' + err);
         });
@@ -9822,55 +9800,54 @@ var App = _react2.default.createClass({
 
     getProjectsInfo: function getProjectsInfo() {
         var self = this;
+        var body = JSON.stringify({ isManager: this.state.user.isManager });
         fetch('/app/getProjectsInfo', {
-            method: 'get',
-            dataType: 'json',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: body,
             credentials: 'include'
         }).then(function (res) {
             return res.json();
         }).then(function (res) {
             self.setState({ projects: res });
-            // console.log(`getProjectsInfo:`);
-            // console.log(self.state.projects);
         }).catch(function (err) {
             console.log('>>err: ' + err);
         });
     },
 
-    componentDidMount: function componentDidMount() {
-        // this.getProjectsInfo = this.getProjectsInfoVirt.bind(this);
-        // this.getUserInfo = this.getUserInfoVirt.bind(this);
-
-        this.getUserInfo();
-        this.getProjectsInfo();
-    },
-
-    showTasks: function showTasks(event) {
-        // if (this.props.project.tasks.length) {//TODO: event props and state is needed
-        //OR: handle this method in Project but close all in App using method of Project
-        // OR: FUCKING RERENDER ALL PROJECTS!!!
-        //     if (this.state.tasksShown) {
-        //         this.refs.tasksBox.style.display = "none";
-        //         this.state.tasksShown = false;
-        //     } else {
-        //         this.refs.tasksBox.style.display = "flex";
-        //         this.state.tasksShown = true;
-        //         // this.refs.project.scrollIntoView();
-        //     }
-        // }
-    },
-
     closeAllTasks: function closeAllTasks() {
-        // console.log(this.refs.project0);
         for (var i = 0; i < this.state.projects.length; i++) {
             var projectRef = 'project' + i;
             this.refs[projectRef].hideTasks();
         }
     },
 
+    closeAllDescriptions: function closeAllDescriptions() {
+        var taskChosen = document.getElementsByClassName("task-chosen");
+        if (taskChosen.length) {
+            taskChosen[0].classList.add('task-unchosen');
+            taskChosen[0].classList.remove('task-chosen');
+        }
+    },
+
     renderProject: function renderProject(project, i) {
         var ref = 'project' + i;
-        return _react2.default.createElement(_project2.default, { ref: ref, key: i, index: i, project: project, getProjectsInfo: this.getProjectsInfo, showTasks: this.showTasks, closeAllTasks: this.closeAllTasks });
+        return _react2.default.createElement(_project2.default, { ref: ref, key: i, index: i, user: this.state.user, project: project, closeAllDescriptions: this.closeAllDescriptions, getProjectsInfo: this.getProjectsInfo, closeAllTasks: this.closeAllTasks });
+    },
+
+    getInitialState: function getInitialState() {
+        return {
+            user: {
+                email: '',
+                firstName: '',
+                lastName: '',
+                isManager: ''
+            },
+            projects: []
+        };
     },
 
     render: function render() {
@@ -9888,6 +9865,10 @@ var App = _react2.default.createClass({
                 )
             )
         );
+    },
+
+    componentDidMount: function componentDidMount() {
+        this.getUserInfo();
     }
 });
 
@@ -22567,6 +22548,74 @@ var Project = _react2.default.createClass({
         this.modalClose();
     },
 
+    //devModal
+
+    devsModalOpen: function devsModalOpen(event) {
+        event.stopPropagation();
+        this.refs.devsModal.style.display = "block";
+        // this.setState({devsList: []});
+        this.selectedDevelopers = {};
+        this.loadDevs();
+    },
+
+    devsModalClose: function devsModalClose() {
+        this.refs.devsModal.style.display = "none";
+        this.selectedDevelopers = {};
+    },
+
+    devsModalCloseOutside: function devsModalCloseOutside(event) {
+        event.stopPropagation();
+        if (event.target == this.refs.devsModal) {
+            this.refs.devsModal.style.display = "none";
+            this.selectedDevelopers = {};
+        }
+    },
+
+    devsModalAddAndClose: function devsModalAddAndClose(event) {
+        this.addDevToProject();
+        this.devsModalClose();
+    },
+
+    getAllDevs: function getAllDevs(projectId) {
+        var self = this;
+        fetch('/app/getAllDevs', {
+            method: 'get',
+            dataType: 'json',
+            credentials: 'include'
+        }).then(function (res) {
+            return res.json();
+        }).then(function (res) {
+            self.setState({ devsList: res });
+            return res;
+        }).catch(function (err) {
+            console.error('>>err: ' + err);
+        });
+    },
+
+    addDevToProject: function addDevToProject() {
+        var self = this;
+        var devsId = Object.keys(this.selectedDevelopers);
+        // console.log(devsId);
+        var dev = JSON.stringify({ devsId: devsId, projectId: this.props.project._id });
+        fetch('/app/addDevToProject', {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: dev,
+            credentials: 'include'
+        }).then(function (res) {
+            return res.json();
+        }).then(function (res) {
+            // console.log(res);
+            self.getProjectDevelopers(res);
+            self.props.getProjectsInfo();
+        }).catch(function (err) {
+            console.error('>>err: ' + err);
+        });
+    },
+
     createTask: function createTask() {
         var self = this;
         var task = JSON.stringify({ taskName: this.refs.taskName.value, projectId: this.props.project._id });
@@ -22580,9 +22629,8 @@ var Project = _react2.default.createClass({
             credentials: 'include'
         }).then(function (res) {
             self.props.getProjectsInfo();
-            // console.log(res.json());
         }).catch(function (err) {
-            console.log('>>err: ' + err);
+            console.error('>>err: ' + err);
         });
     },
 
@@ -22600,7 +22648,29 @@ var Project = _react2.default.createClass({
         }).then(function (res) {
             self.props.getProjectsInfo();
         }).catch(function (err) {
-            console.log('>>err: ' + err);
+            console.error('>>err: ' + err);
+        });
+    },
+
+    getProjectDevelopers: function getProjectDevelopers(projectDevelopers) {
+        var self = this;
+        var projectDevelopersIDs = JSON.stringify({ projectDevelopers: projectDevelopers });
+        fetch('/app/getProjectDevelopers', {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: projectDevelopersIDs,
+            credentials: 'include'
+        }).then(function (res) {
+            return res.json();
+        }).then(function (res) {
+            self.setState({ projectDevelopers: res });
+
+            return res;
+        }).catch(function (err) {
+            console.error('>>err: ' + err);
         });
     },
 
@@ -22609,49 +22679,74 @@ var Project = _react2.default.createClass({
         this.setState({ tasksShown: false });
     },
 
-    showTasks: function showTasks() {
-        if (this.props.project.tasks.length) {
-            if (this.state.tasksShown) {
-                this.refs.tasksBox.style.display = "none";
-                this.setState({ tasksShown: false });
-            } else {
-                this.props.closeAllTasks();
-                this.refs.tasksBox.style.display = "flex";
-                this.setState({ tasksShown: true });
-            }
+    showTasks: function showTasks(event) {
+        event.stopPropagation();
+        if (this.state.tasksShown) {
+            this.refs.tasksBox.style.display = "none";
+            this.setState({ tasksShown: false });
+        } else {
+            this.props.closeAllTasks();
+            this.refs.tasksBox.style.display = "block";
+            this.setState({ tasksShown: true });
         }
     },
 
-    getInitialState: function getInitialState() {
-        return {
-            tasksShown: false
-            // pojectChosen: false
-        };
+    changeDevSelection: function changeDevSelection(event) {
+        event.stopPropagation;
+        var devId = event._targetInst._currentElement.props["data-devId"];
+        if (this.selectedDevelopers[devId]) {
+            //unselect
+            delete this.selectedDevelopers[devId];
+            event.target.classList.remove('selected');
+        } else {
+            this.selectedDevelopers[devId] = true;
+            event.target.classList.add('selected');
+        }
+    },
+
+    selectedDevelopers: {},
+
+    renderDevsList: function renderDevsList(dev, i) {
+        return _react2.default.createElement(
+            'div',
+            { key: i, 'data-devId': dev._id, className: 'modal-dev', onClick: this.changeDevSelection },
+            dev.firstName,
+            '\u2002',
+            dev.lastName
+        );
     },
 
     renderTask: function renderTask(task, i) {
-        return _react2.default.createElement(_task2.default, { key: i, task: task, parentProject: this.props.project, getProjectsInfo: this.props.getProjectsInfo });
+        return _react2.default.createElement(_task2.default, { key: i, user: this.props.user, task: task, devsList: this.state.projectDevelopers, closeAllDescriptions: this.props.closeAllDescriptions, parentProject: this.props.project, getProjectsInfo: this.props.getProjectsInfo });
     },
 
-    render: function render() {
+    renderProjectDevelopers: function renderProjectDevelopers() {
+        if (this.state.projectDevelopers.length) {
+            return this.state.projectDevelopers.map(this.renderProjectDeveloper);
+        } else {
+            return _react2.default.createElement(
+                'div',
+                { className: 'project-developer' },
+                'No one has been appointed yet...'
+            );
+        }
+    },
+
+    renderProjectDeveloper: function renderProjectDeveloper(dev, i) {
         return _react2.default.createElement(
             'div',
-            null,
-            _react2.default.createElement(
+            { className: 'project-developer', key: i },
+            dev.firstName,
+            '\u2002',
+            dev.lastName
+        );
+    },
+
+    renderSignsBox: function renderSignsBox() {
+        if (this.props.user.isManager) {
+            return _react2.default.createElement(
                 'div',
-                { ref: 'project', className: "project " + (this.state.tasksShown ? 'project-chosen' : 'project-unchosen'), onClick: this.showTasks },
-                _react2.default.createElement(
-                    'span',
-                    null,
-                    this.props.project.projectName,
-                    ':\u2002',
-                    _react2.default.createElement(
-                        'span',
-                        null,
-                        this.props.project.tasks.length,
-                        '\u2002tasks'
-                    )
-                ),
+                { className: 'signs-box' },
                 _react2.default.createElement(
                     'span',
                     { ref: 'span', onClick: this.deleteProject, className: 'sign close' },
@@ -22663,40 +22758,161 @@ var Project = _react2.default.createClass({
                     '+'
                 ),
                 _react2.default.createElement(
-                    'div',
-                    { ref: 'modal', onClick: this.modalCloseOutside, className: 'modal' },
-                    _react2.default.createElement(
-                        'div',
-                        { className: 'modal-content form' },
-                        _react2.default.createElement(
-                            'div',
-                            { className: 'modal-header' },
-                            _react2.default.createElement(
-                                'h4',
-                                null,
-                                'Add new Task'
-                            )
-                        ),
-                        _react2.default.createElement(
-                            'div',
-                            { className: 'modal-body' },
-                            _react2.default.createElement('input', { className: 'modal-input', ref: 'taskName', type: 'text', placeholder: 'Task Name', autoFocus: true }),
-                            _react2.default.createElement(
-                                'button',
-                                { className: 'button modal-button', onClick: this.createAndClose },
-                                'Add'
-                            )
-                        )
-                    )
+                    'span',
+                    { ref: 'addDevToProject', onClick: this.devsModalOpen, className: 'sign addDev' },
+                    _react2.default.createElement('i', { className: 'fa fa-user-plus add-dev', 'aria-hidden': 'true', onClick: this.devsModalOpen })
                 )
+            );
+        } else {
+            return _react2.default.createElement(
+                'div',
+                { className: 'signs-box' },
+                _react2.default.createElement(
+                    'span',
+                    { ref: 'span', onClick: this.modalOpen, className: 'sign plus' },
+                    '+'
+                )
+            );
+        }
+    },
+
+    getInitialState: function getInitialState() {
+        return { tasksShown: false, devsList: [], projectDevelopers: [] };
+    },
+
+    componentDidMount: function componentDidMount() {
+        this.getProjectDevelopers(this.props.project.developers);
+        var projectId = this.props.project._id;
+        this.getAllDevs(projectId);
+    },
+
+    render: function render() {
+        return _react2.default.createElement(
+            'div',
+            null,
+            _react2.default.createElement(
+                'div',
+                { ref: 'project', className: "project " + (this.state.tasksShown ? 'project-chosen' : 'project-unchosen'), onClick: this.showTasks },
+                _react2.default.createElement(
+                    'h4',
+                    { className: 'project-name' },
+                    this.props.project.projectName
+                ),
+                _react2.default.createElement(
+                    'span',
+                    { className: 'project-tasks-amount' },
+                    _react2.default.createElement(
+                        'span',
+                        { className: 'project-tasks-amount-number' },
+                        this.props.project.tasks.length
+                    )
+                ),
+                _react2.default.createElement('i', { className: 'fa fa-angle-right', 'aria-hidden': 'true' })
             ),
             _react2.default.createElement(
                 'div',
                 { ref: 'tasksBox', className: 'tasks-box' },
                 _react2.default.createElement(
                     'div',
+                    { className: 'tasks-box-header' },
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'heading' },
+                        _react2.default.createElement(
+                            'div',
+                            { className: 'heading-text' },
+                            _react2.default.createElement(
+                                'h4',
+                                null,
+                                'Project:\u2002'
+                            ),
+                            _react2.default.createElement(
+                                'h3',
+                                null,
+                                '"',
+                                this.props.project.projectName,
+                                '"'
+                            )
+                        ),
+                        this.renderSignsBox()
+                    ),
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'devs-box' },
+                        _react2.default.createElement(
+                            'p',
+                            null,
+                            'Assigned developers'
+                        ),
+                        _react2.default.createElement(
+                            'div',
+                            { className: 'project-devs-box' },
+                            this.renderProjectDevelopers()
+                        )
+                    )
+                ),
+                _react2.default.createElement(
+                    'div',
                     { className: 'tasks-wrapper' },
                     this.props.project.tasks.map(this.renderTask)
+                )
+            ),
+            _react2.default.createElement(
+                'div',
+                { ref: 'modal', onClick: this.modalCloseOutside, className: 'modal' },
+                _react2.default.createElement(
+                    'div',
+                    { className: 'modal-content form' },
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'modal-header' },
+                        _react2.default.createElement(
+                            'h4',
+                            null,
+                            'Add new Task'
+                        )
+                    ),
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'modal-body' },
+                        _react2.default.createElement('input', { className: 'modal-input', ref: 'taskName', type: 'text', placeholder: 'Task Name', autoFocus: true }),
+                        _react2.default.createElement(
+                            'button',
+                            { className: 'button modal-button', onClick: this.createAndClose },
+                            'Add'
+                        )
+                    )
+                )
+            ),
+            _react2.default.createElement(
+                'div',
+                { ref: 'devsModal', onClick: this.devsModalCloseOutside, className: 'modal' },
+                _react2.default.createElement(
+                    'div',
+                    { className: 'modal-content form' },
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'modal-header' },
+                        _react2.default.createElement(
+                            'h4',
+                            null,
+                            'Add Developer'
+                        )
+                    ),
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'modal-body' },
+                        _react2.default.createElement(
+                            'div',
+                            { ref: 'devsList', className: 'devs-list' },
+                            this.state.devsList.map(this.renderDevsList)
+                        ),
+                        _react2.default.createElement(
+                            'button',
+                            { className: 'button modal-button', onClick: this.devsModalAddAndClose },
+                            'Add'
+                        )
+                    )
                 )
             )
         );
@@ -22723,12 +22939,48 @@ var _react2 = _interopRequireDefault(_react);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var Task = _react2.default.createClass({
-    displayName: 'Task',
+    displayName: "Task",
 
+
+    //devModal
+
+    devsModalOpen: function devsModalOpen(event) {
+        event.stopPropagation();
+        this.refs.devsModal.style.display = "block";
+        this.selectedDevelopers = {};
+    },
+
+    devsModalClose: function devsModalClose() {
+        this.refs.devsModal.style.display = "none";
+        this.selectedDevelopers = {};
+    },
+
+    devsModalCloseOutside: function devsModalCloseOutside(event) {
+        event.stopPropagation();
+        if (event.target == this.refs.devsModal) {
+            this.refs.devsModal.style.display = "none";
+            this.selectedDevelopers = {};
+        }
+    },
+
+    devsModalAddAndClose: function devsModalAddAndClose(event) {
+        this.addDevToTask();
+        this.devsModalClose();
+    },
+
+    showTaskDescription: function showTaskDescription(event) {
+        event.stopPropagation();
+        if (event.target.classList.contains('chooseLabel')) {
+            if (event.currentTarget.classList.contains('task-chosen')) {
+                event.currentTarget.classList.remove('task-chosen');
+            } else {
+                this.props.closeAllDescriptions();
+                event.currentTarget.classList.add('task-chosen');
+            }
+        }
+    },
 
     deleteTask: function deleteTask() {
-        console.log('deleteTask');
-        console.log(this.props.task._id);
         var self = this;
         var taskId = JSON.stringify({ taskId: this.props.task._id, projectId: this.props.parentProject._id });
         fetch('/app/deleteTask', {
@@ -22742,30 +22994,489 @@ var Task = _react2.default.createClass({
         }).then(function (res) {
             self.props.getProjectsInfo();
         }).catch(function (err) {
-            console.log('>>err: ' + err);
+            console.error(">>err: " + err);
         });
     },
 
-    renderTask: function renderTask(task, i) {
-        return _react2.default.createElement(Task, { key: i, task: task });
+    addDevToTask: function addDevToTask() {
+        var self = this;
+        var devsId = Object.keys(this.selectedDevelopers);
+        if (devsId.length) {
+            var dev = JSON.stringify({ taskId: this.props.task._id, devsId: devsId, projectId: this.props.parentProject._id });
+            fetch('/app/addDevToTask', {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                method: 'POST',
+                body: dev,
+                credentials: 'include'
+            }).then(function (res) {
+                return res.json();
+            }).then(function (res) {
+                self.getTaskDevelopers(res);
+            }).catch(function (err) {
+                console.error(">>err: " + err);
+            });
+        }
+    },
+
+    getTaskDevelopers: function getTaskDevelopers(taskDevelopers) {
+        var self = this;
+        var taskDevelopersIDs = JSON.stringify({ taskDevelopers: taskDevelopers });
+        fetch('/app/getTaskDevelopers', {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: taskDevelopersIDs,
+            credentials: 'include'
+        }).then(function (res) {
+            return res.json();
+        }).then(function (res) {
+            self.setState({ taskDevelopers: res });
+            return res;
+        }).catch(function (err) {
+            console.error(">>err: " + err);
+        });
+    },
+
+    changeDevSelection: function changeDevSelection(event) {
+        event.stopPropagation;
+        var devId = event._targetInst._currentElement.props["data-devId"];
+        if (this.selectedDevelopers[devId]) {
+            //unselect
+            delete this.selectedDevelopers[devId];
+            event.target.classList.remove('selected');
+        } else {
+            this.selectedDevelopers[devId] = true;
+            event.target.classList.add('selected');
+        }
+    },
+
+    changeTaskStatus: function changeTaskStatus(event) {
+        var self = this;
+        var body = JSON.stringify({ taskId: this.props.task._id, projectId: this.props.parentProject._id, status: event.target.value });
+        fetch('/app/changeTaskStatus', {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: body,
+            credentials: 'include'
+        }).then(function (res) {
+            self.props.getProjectsInfo();
+        }).catch(function (err) {
+            console.error(">>err: " + err);
+        });
+    },
+
+    addComment: function addComment() {
+        var self = this;
+        var body = JSON.stringify({ taskId: this.props.task._id, projectId: this.props.parentProject._id, commentText: this.refs.commentText.value });
+        fetch('/app/addComment', {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: body,
+            credentials: 'include'
+        }).then(function (res) {
+            return res.json();
+        }).then(function (res) {
+            var authorsIDs = Array.from(new Set(res));
+            self.getCommentsAuthors(authorsIDs);
+            self.refs.commentText.value = '';
+        }).catch(function (err) {
+            console.error(">>err: " + err);
+        });
+    },
+
+    getCommentsAuthors: function getCommentsAuthors(authorsIDs) {
+        var self = this;
+        var body = JSON.stringify({ authorsIDs: authorsIDs });
+        fetch('/app/getCommentsAuthors', {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: body,
+            credentials: 'include'
+        }).then(function (res) {
+            return res.json();
+        }).then(function (res) {
+            var commentsAuthorsObj = {};
+            res.map(function (author) {
+                commentsAuthorsObj[author._id] = {
+                    'firstName': author.firstName,
+                    'lastName': author.lastName,
+                    'isManager': author.isManager
+                };
+            });
+            self.setState({ commentsAuthors: commentsAuthorsObj });
+            return res;
+        }).then(function (res) {
+            self.props.getProjectsInfo();
+        }).catch(function (err) {
+            console.error(">>err: " + err);
+        });
+    },
+
+    scrollCommentsToBottom: function scrollCommentsToBottom() {
+        var elements = document.querySelectorAll(".task-chosen .comments-box");
+        if (elements.length) {
+            elements[0].scrollTop = elements[0].scrollHeight;
+        }
+    },
+
+    renderTaskDevelopers: function renderTaskDevelopers() {
+        if (this.state.taskDevelopers.length) {
+            return this.state.taskDevelopers.map(this.renderTaskDeveloper);
+        } else {
+            return _react2.default.createElement(
+                "div",
+                { className: "task-developer" },
+                "No one has been appointed yet..."
+            );
+        }
+    },
+
+    renderTaskDeveloper: function renderTaskDeveloper(dev, i) {
+        return _react2.default.createElement(
+            "div",
+            { className: "task-developer", key: i },
+            dev.firstName,
+            "\u2002",
+            dev.lastName
+        );
+    },
+
+    renderDevsList: function renderDevsList(dev, i) {
+        return _react2.default.createElement(
+            "div",
+            { key: i, "data-devId": dev._id, className: "modal-dev", onClick: this.changeDevSelection },
+            dev.firstName,
+            "\u2002",
+            dev.lastName
+        );
+    },
+
+    renderStatus: function renderStatus() {
+        var status = this.props.task.status;
+        switch (status) {
+            case 'Waiting':
+                return _react2.default.createElement(
+                    "span",
+                    { className: "task-status task-status-box-waiting chooseLabel" },
+                    _react2.default.createElement(
+                        "span",
+                        { className: "task-status-box-text chooseLabel" },
+                        "Waiting"
+                    )
+                );
+                break;
+            case 'Implementation':
+                return _react2.default.createElement(
+                    "span",
+                    { className: "task-status task-status-box-implementation chooseLabel" },
+                    _react2.default.createElement(
+                        "span",
+                        { className: "task-status-box-text chooseLabel" },
+                        "Implement."
+                    )
+                );
+                break;
+            case 'Verifying':
+                return _react2.default.createElement(
+                    "span",
+                    { className: "task-status task-status-box-verifying chooseLabel" },
+                    _react2.default.createElement(
+                        "span",
+                        { className: "task-status-box-text chooseLabel" },
+                        "Verifying"
+                    )
+                );
+                break;
+            case 'Releasing':
+                return _react2.default.createElement(
+                    "span",
+                    { className: "task-status task-status-box-releasing chooseLabel" },
+                    _react2.default.createElement(
+                        "span",
+                        { className: "task-status-box-text chooseLabel" },
+                        "Releasing"
+                    )
+                );
+                break;
+        }
+    },
+
+    renderComments: function renderComments() {
+        if (this.props.task.comments.length) {
+            return this.props.task.comments.map(this.renderComment);
+        } else {
+            return _react2.default.createElement(
+                "div",
+                { className: "no-comments-label" },
+                "No comments yet..."
+            );
+        }
+    },
+
+    renderComment: function renderComment(comment, i) {
+        if (Object.keys(this.state.commentsAuthors).length) {
+            var date = new Date(comment.created);
+            var isManager = this.state.commentsAuthors[comment.author].isManager;
+            return _react2.default.createElement(
+                "div",
+                { className: "comment", key: i },
+                _react2.default.createElement(
+                    "div",
+                    { className: "comment-header" },
+                    _react2.default.createElement(
+                        "div",
+                        { className: "comment-author" },
+                        this.state.commentsAuthors[comment.author].firstName,
+                        "\u2002 ",
+                        this.state.commentsAuthors[comment.author].lastName
+                    ),
+                    _react2.default.createElement(
+                        "div",
+                        { className: "comment-date" },
+                        date.getHours() + ':' + date.getMinutes() + '  ' + date.getDate() + '.' + (date.getMonth() + 1) + '.' + date.getFullYear()
+                    ),
+                    this.renderIsManager(isManager)
+                ),
+                _react2.default.createElement(
+                    "div",
+                    { className: "comment-text" },
+                    comment.text
+                )
+            );
+        }
+    },
+
+    renderIsManager: function renderIsManager(isManager) {
+        if (isManager) {
+            return _react2.default.createElement(
+                "div",
+                { className: "comment-ismanager" },
+                "(Man.)"
+            );
+        } else {
+            return _react2.default.createElement(
+                "div",
+                { className: "comment-isnotmanager" },
+                "(Dev.)"
+            );
+        }
+    },
+
+    renderSignsBox: function renderSignsBox() {
+        if (this.props.user.isManager) {
+            return _react2.default.createElement(
+                "div",
+                { className: "signs-box" },
+                _react2.default.createElement(
+                    "span",
+                    { ref: "span", onClick: this.deleteTask, className: "sign close" },
+                    "\xD7"
+                ),
+                _react2.default.createElement(
+                    "span",
+                    { ref: "addDevToTask", onClick: this.devsModalOpen, className: "sign addDev" },
+                    _react2.default.createElement("i", { className: "fa fa-user-plus add-dev", "aria-hidden": "true", onClick: this.devsModalOpen })
+                )
+            );
+        } else {
+            return _react2.default.createElement(
+                "div",
+                { className: "signs-box" },
+                _react2.default.createElement(
+                    "span",
+                    { ref: "span", onClick: this.deleteTask, className: "sign close" },
+                    "\xD7"
+                )
+            );
+        }
+    },
+
+    selectedDevelopers: {},
+
+    getInitialState: function getInitialState() {
+        return { descriptionShown: false, devsList: this.props.devsList, taskDevelopers: [], commentsAuthors: {} };
     },
 
     render: function render() {
         return _react2.default.createElement(
-            'div',
-            { className: 'task' },
+            "div",
+            { className: "task-wrapper task-unchosen", onClick: this.showTaskDescription },
             _react2.default.createElement(
-                'span',
-                null,
-                this.props.task.taskName
+                "div",
+                { className: "task chooseLabel" },
+                _react2.default.createElement(
+                    "span",
+                    { className: "chooseLabel task-name" },
+                    this.props.task.taskName
+                ),
+                _react2.default.createElement(
+                    "span",
+                    { className: "task-status-box chooseLabel" },
+                    this.renderStatus()
+                )
             ),
             _react2.default.createElement(
-                'span',
-                { ref: 'span', onClick: this.deleteTask, className: 'sign close' },
-                '\xD7'
-            )
+                "div",
+                { ref: "taskDescriptionBox", className: "task-description-box" },
+                _react2.default.createElement(
+                    "div",
+                    { className: "top-box" },
+                    _react2.default.createElement(
+                        "div",
+                        { className: "task-description-box-header" },
+                        _react2.default.createElement(
+                            "div",
+                            { className: "heading" },
+                            _react2.default.createElement(
+                                "div",
+                                { className: "heading-text" },
+                                _react2.default.createElement(
+                                    "h4",
+                                    { className: "label" },
+                                    "Task:\u2002"
+                                ),
+                                _react2.default.createElement(
+                                    "h3",
+                                    null,
+                                    "\"",
+                                    this.props.task.taskName,
+                                    "\""
+                                )
+                            ),
+                            this.renderSignsBox()
+                        )
+                    ),
+                    _react2.default.createElement(
+                        "div",
+                        { className: "devs-box" },
+                        _react2.default.createElement(
+                            "p",
+                            null,
+                            "Assigned developers"
+                        ),
+                        _react2.default.createElement(
+                            "div",
+                            { className: "task-devs-box" },
+                            this.renderTaskDevelopers()
+                        )
+                    ),
+                    _react2.default.createElement(
+                        "p",
+                        { className: "label" },
+                        "Task status:"
+                    ),
+                    _react2.default.createElement(
+                        "select",
+                        { className: "change-task-status", onChange: this.changeTaskStatus, name: "task-status", defaultValue: this.props.task.status },
+                        _react2.default.createElement(
+                            "option",
+                            { value: "Waiting" },
+                            "Waiting"
+                        ),
+                        _react2.default.createElement(
+                            "option",
+                            { value: "Implementation" },
+                            "Implementation"
+                        ),
+                        _react2.default.createElement(
+                            "option",
+                            { value: "Verifying" },
+                            "Verifying"
+                        ),
+                        _react2.default.createElement(
+                            "option",
+                            { value: "Releasing" },
+                            "Releasing"
+                        )
+                    )
+                ),
+                _react2.default.createElement(
+                    "div",
+                    { className: "main-box" },
+                    _react2.default.createElement(
+                        "div",
+                        { className: "comments-box-wrapper" },
+                        _react2.default.createElement(
+                            "p",
+                            { className: "" },
+                            "Comments:"
+                        ),
+                        _react2.default.createElement(
+                            "div",
+                            { className: "comments-box" },
+                            this.renderComments()
+                        ),
+                        _react2.default.createElement(
+                            "div",
+                            { className: "comment-add" },
+                            _react2.default.createElement("textarea", { className: "add-comment-textarea", ref: "commentText", placeholder: "Write a comment..." }),
+                            _react2.default.createElement(
+                                "button",
+                                { className: "add-comment-button", type: "button", name: "add-comment-button", onClick: this.addComment },
+                                "Send"
+                            )
+                        )
+                    )
+                )
+            ),
+            _react2.default.createElement(
+                "div",
+                { ref: "devsModal", onClick: this.devsModalCloseOutside, className: "modal" },
+                _react2.default.createElement(
+                    "div",
+                    { className: "modal-content form" },
+                    _react2.default.createElement(
+                        "div",
+                        { className: "modal-header" },
+                        _react2.default.createElement(
+                            "h4",
+                            null,
+                            "Add Developer"
+                        )
+                    ),
+                    _react2.default.createElement(
+                        "div",
+                        { className: "modal-body" },
+                        _react2.default.createElement(
+                            "div",
+                            { ref: "devsList", className: "devs-list" },
+                            this.props.devsList.map(this.renderDevsList)
+                        ),
+                        _react2.default.createElement(
+                            "button",
+                            { className: "button modal-button", onClick: this.devsModalAddAndClose },
+                            "Add"
+                        )
+                    )
+                )
+            ),
+            this.scrollCommentsToBottom()
         );
+    },
+
+    componentDidMount: function componentDidMount() {
+        this.getTaskDevelopers(this.props.task.developers);
+        var authorsIDs = this.props.task.comments.map(function (comment) {
+            return comment.author;
+        });
+        authorsIDs = Array.from(new Set(authorsIDs));
+        this.getCommentsAuthors(authorsIDs);
     }
+
 });
 
 exports.default = Task;
@@ -22841,9 +23552,13 @@ var Header = _react2.default.createClass({
                 _react2.default.createElement(
                     'span',
                     null,
-                    this.props.user.firstName,
-                    '\u2002',
-                    this.props.user.lastName
+                    _react2.default.createElement(
+                        'h3',
+                        null,
+                        this.props.user.firstName,
+                        '\u2002',
+                        this.props.user.lastName
+                    )
                 ),
                 _react2.default.createElement(
                     'div',
@@ -22896,19 +23611,27 @@ var Header = _react2.default.createClass({
                 'div',
                 { className: 'header' },
                 _react2.default.createElement(
-                    'h3',
+                    'span',
                     null,
-                    'Hello, ',
-                    this.props.user.firstName,
-                    this.props.user.lastName
+                    _react2.default.createElement(
+                        'h3',
+                        null,
+                        this.props.user.firstName,
+                        '\u2002',
+                        this.props.user.lastName
+                    )
                 ),
                 _react2.default.createElement(
-                    'form',
-                    { action: '/logout', method: 'post', className: 'logout-form' },
+                    'div',
+                    { className: 'header-buttons' },
                     _react2.default.createElement(
-                        'button',
-                        { type: 'submit', className: 'logout-btn button' },
-                        'Logout'
+                        'form',
+                        { action: '/logout', method: 'post', className: 'logout-form' },
+                        _react2.default.createElement(
+                            'button',
+                            { type: 'submit', className: 'short-btn button' },
+                            'Logout'
+                        )
                     )
                 )
             );

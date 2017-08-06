@@ -25,10 +25,9 @@ let schema = new Schema({
                 type: String,
                 required: true
             },
-            isFinished: {
-                type: Boolean,
-                required: true,
-                default: false
+            status: {
+                type: String,
+                default: "Waiting"
             },
             developers: [
                 {

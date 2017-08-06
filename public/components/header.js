@@ -48,49 +48,44 @@ let Header = React.createClass({
         if (this.props.user.isManager) {
             return (
                 <div className="header">
-                    {/* <div className="wrapper"> */}
+                    <span><h3>{this.props.user.firstName}&ensp;{this.props.user.lastName}</h3></span>
 
-                        <span>{this.props.user.firstName}&ensp;{this.props.user.lastName}</span>
+                    <div className="header-buttons">
 
-                        <div className="header-buttons">
+                        {/* <!-- Trigger/Open The Modal --> */}
+                        <button ref="btn" onClick={this.modalOpen} className="short-btn button">Add Project</button>
 
-                            {/* <!-- Trigger/Open The Modal --> */}
-                            <button ref="btn" onClick={this.modalOpen} className="short-btn button">Add Project</button>
+                        {/* <!-- The Modal --> */}
+                        <div ref="modal" onClick={this.modalCloseOutside} className="modal">
 
-                            {/* <!-- The Modal --> */}
-                            <div ref="modal" onClick={this.modalCloseOutside} className="modal">
-
-                                {/* <!-- Modal content --> */}
-                                <div className="modal-content form">
-                                    <div className="modal-header">
-                                        <h4>Add new project</h4>
-                                        {/* <span ref="span" onClick={this.modalClose} className="close">&times;</span> */}
-                                    </div>
-                                    <div className="modal-body">
-                                        <input className="modal-input" ref="projectName" type="text" placeholder="Project Name" autoFocus/>
-                                        <button className="button modal-button" onClick={this.createAndClose}>Add</button>
-                                    </div>
-                                    {/* <div className="modal-footer">
-                                    </div> */}
+                            {/* <!-- Modal content --> */}
+                            <div className="modal-content form">
+                                <div className="modal-header">
+                                    <h4>Add new project</h4>
                                 </div>
-
+                                <div className="modal-body">
+                                    <input className="modal-input" ref="projectName" type="text" placeholder="Project Name" autoFocus/>
+                                    <button className="button modal-button" onClick={this.createAndClose}>Add</button>
+                                </div>
                             </div>
 
-                            <form action="/logout" method="post" className="logout-form">
-                                <button type="submit" className="short-btn button">Logout</button>
-                            </form>
                         </div>
-                        {/* </div> */}
+
+                        <form action="/logout" method="post" className="logout-form">
+                            <button type="submit" className="short-btn button">Logout</button>
+                        </form>
+                    </div>
                 </div>
             );
         } else {
             return (
                 <div className="header">
-                    <h3>Hello, {this.props.user.firstName}
-                        {this.props.user.lastName}</h3>
-                    <form action="/logout" method="post" className="logout-form">
-                        <button type="submit" className="logout-btn button">Logout</button>
-                    </form>
+                    <span><h3>{this.props.user.firstName}&ensp;{this.props.user.lastName}</h3></span>
+                    <div className="header-buttons">
+                        <form action="/logout" method="post" className="logout-form">
+                            <button type="submit" className="short-btn button">Logout</button>
+                        </form>
+                    </div>
                 </div>
             );
         }
