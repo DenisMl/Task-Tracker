@@ -4,7 +4,6 @@ let path = require('path');
 let config = require('./config');
 let bodyParser = require('body-parser');
 let cookieParser = require('cookie-parser');
-// let passport = require('passport');
 let morgan = require('morgan');
 let mongoose = require('./libs/mongoose');
 let mainRoutes = require('./routes/mainRoutes');
